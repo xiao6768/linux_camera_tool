@@ -104,24 +104,19 @@ void open_config_dialog(GtkWidget *widget, gpointer window)
 
 void fw_update_clicked (GtkWidget *item)
 {
-    if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(item)), "Erase") == 0 )
+    if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(item)), "Erase Firmware") == 0 )
     {
         /// close the camera first before erase 
-        //FIXME: camera tool exit??
         set_loop(0);
         firmware_erase(v4l2_dev);
-        //gtk_main_quit();
+        gtk_main_quit();
         
     }
     else if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(item)), "Reset Camera") == 0 )
     {
         reboot_camera(v4l2_dev);
     }
-    else if (strcmp(gtk_menu_item_get_label(GTK_MENU_ITEM(item)), "FW Update") == 0 )
-    {
-        g_print("You pressed fw update. I haven't finished the code yet\r\n");
-        //TODO:
-    }
+
 }
 
 /** callback for sensor datatype updates*/
@@ -850,13 +845,10 @@ void menu_bar_setup()
     gtk_menu_shell_append(GTK_MENU_SHELL(fw_update_menu), fw_update_item);
     g_signal_connect(fw_update_item, "activate", G_CALLBACK(fw_update_clicked), NULL);
 
-    fw_update_item = gtk_menu_item_new_with_label("Erase");
+    fw_update_item = gtk_menu_item_new_with_label("Erase Firmware");
     gtk_menu_shell_append(GTK_MENU_SHELL(fw_update_menu), fw_update_item);
     g_signal_connect(fw_update_item, "activate", G_CALLBACK(fw_update_clicked), NULL);
 
-    fw_update_item = gtk_menu_item_new_with_label("FW Update");
-    gtk_menu_shell_append(GTK_MENU_SHELL(fw_update_menu), fw_update_item);
-    g_signal_connect(fw_update_item, "activate", G_CALLBACK(fw_update_clicked), NULL);
 
     /** help items */
     help_item = gtk_menu_item_new_with_label("Help");
