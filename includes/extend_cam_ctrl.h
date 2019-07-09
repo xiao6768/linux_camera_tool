@@ -108,12 +108,11 @@ void get_a_frame(struct device *dev);
 void perform_shift(struct device *dev, const void *p, int shift);
 void swap_two_bytes(struct device *dev, const void *p);
 void decode_a_frame(struct device *dev, const void *p, int shift);
-
  
 int video_alloc_buffers(struct device *dev, int nbufs);
 int video_free_buffers(struct device *dev);
 
-
 void set_loop(int exit);
 
+void auto_capture_enable(int gui_enable, int gui_fps);
 

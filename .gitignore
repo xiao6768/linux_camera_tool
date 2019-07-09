@@ -32,6 +32,7 @@
 *.app
 
 /build/
+/build_reg/
 /.vscode/
 
 *.bmp
@@ -39,5 +40,3 @@
 *.json
 *.txt
 *.bin
-*.img
-*.lif

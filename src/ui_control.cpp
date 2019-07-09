@@ -41,7 +41,9 @@ GtkWidget *label_reg_addr, *entry_reg_addr;
 GtkWidget *label_reg_val, *entry_reg_val;
 GtkWidget *button_read, *button_write;
 GtkWidget *check_button_just_sensor;
+GtkWidget *check_button_auto_capture;
 GtkWidget *label_capture, *button_capture_bmp, *button_capture_raw;
+GtkWidget *label_auto_capture, *entry_capture_fps;
 GtkWidget *label_gamma, *entry_gamma, *button_apply_gamma;
 GtkWidget *label_trig, *check_button_trig_en, *button_trig;
 GtkWidget *label_blc, *entry_blc, *button_apply_blc;
@@ -295,7 +297,7 @@ void register_read(GtkWidget *widget)
             gtk_entry_get_text(GTK_ENTRY(entry_reg_addr)));
 
         int regVal = sensor_reg_read(v4l2_dev, regAddr);
-        char buf[10];
+        char buf[6+1];
         snprintf(buf, sizeof(buf), "0x%x", regVal);
         gtk_entry_set_text(GTK_ENTRY(entry_reg_val), buf);
     }
@@ -382,6 +384,28 @@ void enable_trig(GtkWidget *widget)
     }
 }
 
+/** callback for enabling/disalign auto capture && set auto capture FPS*/
+void enable_auto_capture(GtkWidget *widget)
+{
+    (void)widget;
+    int fps = atoi((char *)gtk_entry_get_text(GTK_ENTRY(entry_capture_fps)));
+    if(fps > 30)
+    {
+        printf("fps must <= 30\n");
+        fps = 30;
+    }
+    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+    {
+        /** positive edge */
+        auto_capture_enable(1, fps);
+    }
+    else
+    {
+        auto_capture_enable(0, fps);
+        /** disable trigger */
+    }
+}
+
 /** callback for black level correction ctrl */
 void black_level_correction(GtkWidget *widget)
 {
@@ -396,8 +420,7 @@ void black_level_correction(GtkWidget *widget)
     else
     {
          g_print("Please enter an integer for each pixel black level correction\r\n");
-    }
-    
+    }    
 }
 
 /** exit streaming loop */
@@ -498,7 +521,8 @@ void list_all_def_elements ()
         {.widget = label_reg_addr,    .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Reg Addr:"},     
         {.widget = label_reg_val,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Reg Value:"},
         {.widget = label_trig,        .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Trigger Sensor:"},
-        {.widget = label_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Capture:"},     
+        {.widget = label_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Capture:"}, 
+        {.widget = label_auto_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Auto Capture(FPS):"},    
         {.widget = label_gamma,       .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Gamma Correction:"},
         {.widget = label_blc,         .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Black Level Correction:"},
 
@@ -516,6 +540,7 @@ void list_all_def_elements ()
         {.widget = check_button_auto_gain ,    .wid_type = GTK_WIDGET_TYPE_CHECK_BUTTON, .parent = NULL, .label_str = "Enable auto brightness&contrast"},        
         {.widget = check_button_just_sensor,   .wid_type = GTK_WIDGET_TYPE_CHECK_BUTTON, .parent = NULL, .label_str = "Just sensor read/write"},
         {.widget = check_button_trig_en,       .wid_type = GTK_WIDGET_TYPE_CHECK_BUTTON, .parent = NULL, .label_str = "Enable"},
+        {.widget = check_button_auto_capture,   .wid_type = GTK_WIDGET_TYPE_CHECK_BUTTON, .parent = NULL, .label_str = "Enable"},
 
         {.widget = hscale_exposure,   .wid_type = GTK_WIDGET_TYPE_HSCALE, .parent =  NULL, .label_str = "2505"},
         {.widget = hscale_gain,       .wid_type = GTK_WIDGET_TYPE_HSCALE, .parent =  NULL, .label_str = "64"},
@@ -525,6 +550,8 @@ void list_all_def_elements ()
         {.widget = entry_reg_val,     .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "0x"},    
         {.widget = entry_gamma,       .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "1"},
         {.widget = entry_blc,         .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "0"},
+
+        {.widget = entry_capture_fps,     .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "5"}, 
 
         {.widget = radio_raw10, .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_datatype, .label_str = "RAW10"},
         {.widget = radio_raw12, .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_datatype, .label_str = "RAW12"},
@@ -610,7 +637,11 @@ void list_all_grid_elements()
         {.widget = label_capture,        .col = col = 0,    .row = row,    .width = 1},
         {.widget = button_capture_bmp,   .col = ++col,      .row = row,    .width = 1},
         {.widget = button_capture_raw,   .col = ++col,      row++,  .width = 1},
- 
+
+        {.widget = label_auto_capture,   .col = col = 0,    .row = row,    .width = 1},
+        {.widget = entry_capture_fps,    .col = ++col,      .row = row,    .width = 1},
+        {.widget = check_button_auto_capture,  .col = ++col,      row++,  .width = 1},
+
         {.widget = label_gamma,          .col = col = 0,    .row = row,    .width = 1},
         {.widget = entry_gamma,          .col = ++col,      .row = row,    .width = 1},
         {.widget = button_apply_gamma,   .col = ++col,      row++,  .width = 1},
@@ -675,6 +706,8 @@ void list_all_element_callbacks()
         {.widget = button_capture_raw, .signal = "clicked", .handler = G_CALLBACK(capture_raw), .data =  NULL},
  
         {.widget = button_apply_gamma, .signal = "clicked", .handler = G_CALLBACK(gamma_correction), .data = NULL},
+
+        {.widget = check_button_auto_capture,  .signal = "toggled", .handler = G_CALLBACK(enable_auto_capture), .data = NULL},
  
         {.widget = check_button_trig_en,  .signal = "toggled", .handler = G_CALLBACK(enable_trig), .data = NULL},
         {.widget = button_trig,           .signal = "clicked", .handler = G_CALLBACK(send_trigger), .data = NULL},
@@ -724,6 +757,7 @@ void init_all_widgets()
     label_reg_addr = gtk_label_new(NULL);
     label_reg_val  = gtk_label_new(NULL);
     label_capture  = gtk_label_new(NULL);  
+    label_auto_capture  = gtk_label_new(NULL);
     label_gamma    = gtk_label_new(NULL);
     label_trig     = gtk_label_new(NULL);
     label_blc      = gtk_label_new(NULL);
@@ -742,18 +776,19 @@ void init_all_widgets()
     check_button_auto_gain      = gtk_check_button_new();    
     check_button_trig_en        = gtk_check_button_new();
     check_button_just_sensor    = gtk_check_button_new();
+    check_button_auto_capture   = gtk_check_button_new();
 
     entry_i2c_addr  = gtk_entry_new();
     entry_reg_addr  = gtk_entry_new();
     entry_reg_val   = gtk_entry_new();
     entry_gamma     = gtk_entry_new();
     entry_blc       = gtk_entry_new();
-
+    entry_capture_fps   = gtk_entry_new();
 
     hscale_exposure = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-                                               0.0, (double)exposure_max, 1.0);
+                                               0.0, 2505.0, 1.0);
     hscale_gain     = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-                                           0.0, (double)gain_max, 1.0);
+                                           0.0, 63.0, 1.0);
 
     hbox_val_width  = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     hbox_addr_width = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);

@@ -108,6 +108,8 @@ void black_level_correction(GtkWidget *widget);
 void send_trigger(GtkWidget *widget);
 void enable_trig(GtkWidget *widget);
 
+void enable_auto_capture(GtkWidget *widget);
+
 void exit_loop(GtkWidget *widget);
 gboolean check_escape(GtkWidget *widget, GdkEventKey *event);
 

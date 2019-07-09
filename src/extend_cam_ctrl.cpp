@@ -40,7 +40,7 @@
 
 #include "../includes/shortcuts.h"
 #include "../includes/extend_cam_ctrl.h"
-
+#include <chrono>
 /*****************************************************************************
 **                      	Global data 
 *****************************************************************************/
@@ -61,11 +61,18 @@ static int image_count;				/** image count number printed to captures name */
 double t = 0;						/** time measured in opencv for caculating fps */
 double fps;							/** frame rate */
 char string_frame_rate[10];			/** string to save the frame rate */
+static int *auto_capture_flag;		/** flag for auto capture BMP */
+static int *auto_capture_fps;		/** number of frames per second for auto capture BMP */
 
 struct v4l2_buffer queuebuffer; /** queuebuffer query for enqueue, dequeue buffers*/
 
 extern char *get_product(); /** put product name into captured image name */
 extern void json_parser(int fd);
+
+extern int 	enable_auto_capture_bmp;
+extern int	auto_capture_bmp_rate_per_second;
+static std::chrono::_V2::system_clock::time_point start = std::chrono::high_resolution_clock::now();
+
 /******************************************************************************
 **                           Function definition
 *****************************************************************************/
@@ -153,6 +160,15 @@ void video_capture_save_bmp()
 inline void set_save_bmp_flag(int flag)
 {
 	*save_bmp = flag;
+}
+
+
+void auto_capture_enable(int gui_enable, int gui_fps)
+{
+	printf("auto capture enable => {%d}\n", gui_enable);
+	printf("auto capture FPS => {%d}\n", gui_fps);
+	*auto_capture_flag = gui_enable;
+	*auto_capture_fps = gui_fps;
 }
 
 /**
@@ -297,7 +313,7 @@ void add_gamma_val(float gamma_val_from_gui)
  *  whereas it will be the opposite with *gamma_val > 1
  *  recommend *gamma_val: 0.45(1/2.2)
  */
-void apply_gamma_correction(const cv::InputOutputArray opencvImage)
+static cv::Mat apply_gamma_correction(cv::Mat opencvImage)
 {
 	cv::Mat look_up_table(1, 256, CV_8U);
 	uchar *p = look_up_table.ptr();
@@ -306,6 +322,7 @@ void apply_gamma_correction(const cv::InputOutputArray opencvImage)
 		p[i] = cv::saturate_cast<uchar>(pow(i / 255.0, *gamma_val) * 255.0);
 	}
 	LUT(opencvImage, look_up_table, opencvImage);
+	return opencvImage;
 }
 
 /**
@@ -336,20 +353,20 @@ void awb_enable(int enable)
  *  color temperature.
  *  ref: https://gist.github.com/tomykaira/94472e9f4921ec2cf582
  */
-void apply_white_balance(cv::InputOutputArray opencvImage)
+static cv::Mat apply_white_balance(cv::Mat opencvImage)
 {
 	// if it is grey image, do nothing
 	if (opencvImage.type() == CV_8UC1)
-		return;
-	cv::Mat _opencvImage = opencvImage.getMat();
+		return opencvImage;
+
 	double discard_ratio = 0.05;
 	int hists[3][256];
 	CLEAR(hists);
 
-	for (int y = 0; y < _opencvImage.rows; ++y)
+	for (int y = 0; y < opencvImage.rows; ++y)
 	{
-		uchar *ptr = _opencvImage.ptr<uchar>(y);
-		for (int x = 0; x < _opencvImage.cols; ++x)
+		uchar *ptr = opencvImage.ptr<uchar>(y);
+		for (int x = 0; x < opencvImage.cols; ++x)
 		{
 			for (int j = 0; j < 3; ++j)
 			{
@@ -359,7 +376,7 @@ void apply_white_balance(cv::InputOutputArray opencvImage)
 	}
 
 	// cumulative hist
-	int total = _opencvImage.cols * _opencvImage.rows;
+	int total = opencvImage.cols * opencvImage.rows;
 	int vmin[3], vmax[3];
 	for (int i = 0; i < 3; ++i)
 	{
@@ -377,10 +394,10 @@ void apply_white_balance(cv::InputOutputArray opencvImage)
 			vmax[i] += 1;
 	}
 
-	for (int y = 0; y < _opencvImage.rows; ++y)
+	for (int y = 0; y < opencvImage.rows; ++y)
 	{
-		uchar *ptr = _opencvImage.ptr<uchar>(y);
-		for (int x = 0; x < _opencvImage.cols; ++x)
+		uchar *ptr = opencvImage.ptr<uchar>(y);
+		for (int x = 0; x < opencvImage.cols; ++x)
 		{
 			for (int j = 0; j < 3; ++j)
 			{
@@ -393,7 +410,7 @@ void apply_white_balance(cv::InputOutputArray opencvImage)
 			}
 		}
 	}
-	
+	return opencvImage;
 }
 
 /**
@@ -417,14 +434,14 @@ void abc_enable(int enable)
 	}
 }
 
-void apply_auto_brightness_and_contrast(
-	cv::InputOutputArray opencvImage,
+static cv::Mat apply_auto_brightness_and_contrast(
+	cv::Mat opencvImage,
 	float clipHistPercent = 0)
 
 {
 	// if it is grey image, do nothing
 	if (opencvImage.type() == CV_8UC1)
-		return;
+		return opencvImage;
 	// /** Method 1:
 	//  * Automatic brightness and contrast optimization with optional histogram clipping
 	//  * Looking at histogram, alpha operates as color range amplifier, beta operates as range shift.
@@ -519,7 +536,7 @@ void apply_auto_brightness_and_contrast(
 
 	// convert back to RGB
 	cv::cvtColor(lab_image, opencvImage, cv::COLOR_Lab2BGR);
-
+	return opencvImage;
 }
 
 /** 
@@ -613,6 +630,12 @@ void mmap_variables()
 		PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	loop = (int *)mmap(NULL, sizeof *loop, PROT_READ | PROT_WRITE,
 					   MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+	auto_capture_flag = (int *)mmap(NULL, sizeof *auto_capture_flag, PROT_READ | PROT_WRITE,
+					MAP_SHARED | MAP_ANONYMOUS, -1, 0);	
+	
+	auto_capture_fps = (int *)mmap(NULL, sizeof *auto_capture_fps, PROT_READ | PROT_WRITE,
+					MAP_SHARED | MAP_ANONYMOUS, -1, 0);							   
 }
 
 /** unmap all the variables after stream ends */
@@ -627,6 +650,8 @@ void unmap_variables()
 	munmap(gamma_val, sizeof *gamma_val);
 	munmap(black_level_correction, sizeof *black_level_correction);
 	munmap(loop, sizeof *loop);
+	munmap(auto_capture_flag, sizeof *auto_capture_flag);
+	munmap(auto_capture_fps, sizeof *auto_capture_fps);
 }
 
 /**
@@ -882,7 +907,7 @@ void swap_two_bytes(struct device *dev, const void *p)
  * group 3a ctrl flags for bayer cameras
  * auto exposure, auto white balance, auto brightness and contrast ctrl
  */
-void group_3a_ctrl_flags_for_raw_camera(cv::InputOutputArray opencvImage)
+static cv::Mat group_3a_ctrl_flags_for_raw_camera(cv::Mat opencvImage)
 {
 	/** color output */
 	if (add_bayer_forcv(bayer_flag) != 4)
@@ -901,16 +926,17 @@ void group_3a_ctrl_flags_for_raw_camera(cv::InputOutputArray opencvImage)
 
 	/** gamma correction functionality, only available for bayer camera */
 	if (*(gamma_val) != (float)1)
-		apply_gamma_correction(opencvImage);
+		opencvImage = apply_gamma_correction(opencvImage);
 
 	/** check awb flag, awb functionality, only available for bayer camera */
 	if (*(awb_flag) == TRUE)
-		apply_white_balance(opencvImage);
+		opencvImage = apply_white_balance(opencvImage);
 
 	/** check abc flag, abc functionality, only available for bayer camera */
 	if (*(abc_flag) == TRUE)
-		apply_auto_brightness_and_contrast(opencvImage, 1);
+		opencvImage = apply_auto_brightness_and_contrast(opencvImage, 1);
 
+	return opencvImage;
 }
 
 /**
@@ -954,7 +980,7 @@ void decode_a_frame(struct device *dev, const void *p, int shift)
 		perform_shift(dev, p, shift);
 		//swap_two_bytes(dev, p);
 		cv::Mat img(height, width, CV_8UC1, (void *)p);
-		group_3a_ctrl_flags_for_raw_camera(img);
+		img = group_3a_ctrl_flags_for_raw_camera(img);
 		//#define DUAL_CAM
 		#ifdef DUAL_CAM
 		/// define region of interest for cropped Mat for AR0231 DUAL
@@ -992,7 +1018,7 @@ void decode_a_frame(struct device *dev, const void *p, int shift)
 		// need to adjust read width
 		width = width * 2; 
 		cv::Mat img(height, width, CV_8UC1, (void *)p);
-		group_3a_ctrl_flags_for_raw_camera(img);
+		img = group_3a_ctrl_flags_for_raw_camera(img);
 		share_img = img;
 	}
 
@@ -1003,6 +1029,19 @@ void decode_a_frame(struct device *dev, const void *p, int shift)
 		save_frame_image_bmp(share_img);
 		image_count++;
 		set_save_bmp_flag(0);
+	}
+	/** enable_auto_capture_bmp  */	
+	if(*auto_capture_flag)
+	{
+		double capture_delay = (double)1000 / (double)*auto_capture_fps;
+		auto finish = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = finish - start;
+		if((elapsed.count() * 1000) > capture_delay)
+		{
+			save_frame_image_bmp(share_img);
+			image_count++;
+			start = finish;
+		}
 	}
 
 	/** if image larger than 720p by any dimension, resize the window */

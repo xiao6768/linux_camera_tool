@@ -9,13 +9,15 @@
 #include "../includes/json_parser.h"
 #include <chrono> //high resolution clock
 #include <iostream>
-
 int v4l2_dev; /** global variable, file descriptor for camera device */
 int fw_rev;   /** global variable, firmware revision for the camera */
 int gain_max; /** global variable, update gain range in GUI, read from v4l2 */
 int exposure_max; /** global variable, update exposure range in GUI, read from v4l2 */
 
 struct v4l2_fract time_per_frame = {1, 15};
+
+int enable_auto_capture_bmp = 0;
+int auto_capture_bmp_rate_per_second = 5;
 
 
 static struct option opts[] = {
@@ -96,14 +98,14 @@ int main(int argc, char **argv)
 	{
 		printf("failed to list camera %s resolution\n\r", dev_name);
 		return -1;
-	}
+	}	
 	/** 
 	 * run a v4l2-ctl --list-formats-ext 
 	 * to see the resolution and available frame rate 
 	 */
 
 	printf("********************Camera Tool Usages***********************\n");
-	while ((c = getopt_long(argc, argv, "n:s:t:", opts, NULL)) != -1)
+	while ((c = getopt_long(argc, argv, "n:s:t:c:", opts, NULL)) != -1)
 	{
 		switch (c)
 		{
@@ -132,6 +134,10 @@ int main(int argc, char **argv)
 		case 't':
 			do_set_time_per_frame = 1;
 			time_per_frame.denominator = atoi(optarg);
+			break;
+		case 'c':
+			enable_auto_capture_bmp = 1;
+			auto_capture_bmp_rate_per_second = atoi(optarg);
 			break;
 		default:
 			printf("Invalid option -%c\n", c);
@@ -204,7 +210,7 @@ int main(int argc, char **argv)
 
 #ifdef AP0202_WRITE_REG_IN_FLASH
 	load_register_setting_from_configuration(v4l2_dev,
-											 SIZE(ChangConfigFromFlash), ChangConfigFromFlash);
+		SIZE(ChangConfigFromFlash), ChangConfigFromFlash);
 
 	sleep(1);
 	//generic_I2C_read(v4l2_dev, 0x02, 2, AP020X_I2C_ADDR, 0x0058);
@@ -252,13 +258,16 @@ int main(int argc, char **argv)
 	std::cout << "pid:" << getpid() << "\tElapsed time： " << elapsed.count() << "s\r\n";
 
 	//FIXME:why when close the window, it won't kill the process
-	sys_ret = system("killall -9 leopard_cam");
+	sys_ret = system("killall -9 leopard_cam"); 
+
+
 
 	if (sys_ret < 0)
 	{
 		printf("fail to exit the leopard camera tool\r\n");
 		return -1;
-	}
+	} 
+
 
 	return 0;
 }

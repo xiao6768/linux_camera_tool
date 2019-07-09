@@ -421,7 +421,6 @@ void trigger_enable(int fd, int ena, int enb)
         LI_XU_TRIGGER_MODE_SIZE, buf11);
     //printf("trigger mode enable\n");
 }
-
 /**
  *	save register to spi flash on FX3, load it automatically when boot time
  *  flash for storage is set to be 256 bytes
