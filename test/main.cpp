@@ -81,9 +81,9 @@ int main(int argc, char **argv)
 	 * exposure time range so the range won't be as large as 65535 which confuses people
 	 */
 	gain_max = std::stoi(get_stdout_from_cmd( \
-		"v4l2-ctl --all | grep gain | awk '{print $6}'| sed 's/max=//g'"));
+		"v4l2-ctl --all | grep gain | awk '{print $5}'| sed 's/max=//g'"));
 	exposure_max = std::stoi(get_stdout_from_cmd( \
-		"v4l2-ctl --all | grep exposure_absolute | awk '{print $6}'| sed 's/max=//g'"));
+		"v4l2-ctl --all | grep exposure_absolute | awk '{print $5}'| sed 's/max=//g'"));
 	int height = std::stoi(get_stdout_from_cmd( \
 		"v4l2-ctl --all | grep Bounds | awk '{print $10}'"));
 	// if UNSET_MAX_EXPOSURE_LINE, firmware didn't define MAX_EXPOSURE_TIME...
