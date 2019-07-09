@@ -59,6 +59,11 @@ typedef enum
    CV_MONO_FLG        
 }pixel_order_flag;
 
+typedef enum
+{
+   CROPPED_WIDTH = 1280,
+   CROPPED_HEIGHT = 720
+}cropped_resolution;
 /****************************************************************************
 **							 Function declaration
 *****************************************************************************/

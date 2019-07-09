@@ -7,10 +7,15 @@
 #include "../includes/cam_property.h"
 #include "../includes/v4l2_devices.h"
 #include "../includes/json_parser.h"
-
+#include <chrono> //high resolution clock
+#include <iostream>
 int v4l2_dev; /** global variable, file descriptor for camera device */
 int fw_rev;   /** global variable, firmware revision for the camera */
 struct v4l2_fract time_per_frame = {1, 15};
+
+int enable_auto_capture_bmp = 0;
+int auto_capture_bmp_rate_per_second = 5;
+
 
 static struct option opts[] = {
 
@@ -31,32 +36,35 @@ int main(int argc, char **argv)
 	dev.nbufs = V4L_BUFFERS_DEFAULT;
 	int c;
 	int sys_ret;
-	
-	char *ret_dev_name = enum_v4l2_device(dev_name);
-	v4l2_dev = open_v4l2_device(ret_dev_name, &dev);
 
-	if (v4l2_dev < 0)
-	{
-		printf("open camera %s failed,err code:%d\n\r", dev_name, v4l2_dev);
-		return -1;
-	}
+	// record start time
+	auto start = std::chrono::high_resolution_clock::now();
 
-	printf("********************List Available Resolutions***************\n");
-	/** list all the resolutions */
-	sys_ret = system("v4l2-ctl --list-formats-ext | grep Size | awk '{print $1 $3}'|  	\
-		sed 's/Size/Resolution/g'");
-	if (sys_ret < 0)
-	{
-		printf("failed to list camera %s resolution\n\r", dev_name);
-		return -1;
-	}	
+	// char *ret_dev_name = enum_v4l2_device(dev_name);
+	// v4l2_dev = open_v4l2_device(ret_dev_name, &dev);
+
+	// if (v4l2_dev < 0)
+	// {
+	// 	printf("open camera %s failed,err code:%d\n\r", dev_name, v4l2_dev);
+	// 	return -1;
+	// }
+
+	// printf("********************List Available Resolutions***************\n");
+	// /** list all the resolutions */
+	// sys_ret = system("v4l2-ctl --list-formats-ext | grep Size | awk '{print $1 $3}'|  	\
+	// 	sed 's/Size/Resolution/g'");
+	// if (sys_ret < 0)
+	// {
+	// 	printf("failed to list camera %s resolution\n\r", dev_name);
+	// 	return -1;
+	// }	
 	/** 
 	 * run a v4l2-ctl --list-formats-ext 
 	 * to see the resolution and available frame rate 
 	 */
 
 	printf("********************Camera Tool Usages***********************\n");
-	while ((c = getopt_long(argc, argv, "n:s:t:", opts, NULL)) != -1)
+	while ((c = getopt_long(argc, argv, "n:s:t:c:", opts, NULL)) != -1)
 	{
 		switch (c)
 		{
@@ -85,6 +93,10 @@ int main(int argc, char **argv)
 		case 't':
 			do_set_time_per_frame = 1;
 			time_per_frame.denominator = atoi(optarg);
+			break;
+		case 'c':
+			enable_auto_capture_bmp = 1;
+			auto_capture_bmp_rate_per_second = atoi(optarg);
 			break;
 		default:
 			printf("Invalid option -%c\n", c);
@@ -202,12 +214,21 @@ int main(int argc, char **argv)
 	video_free_buffers(&dev);
 	close(v4l2_dev);
 
+	auto finish = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed = finish - start;
+	std::cout << "pid:" << getpid() << "\tElapsed time： " << elapsed.count() << "s\r\n";
+
 	//FIXME:why when close the window, it won't kill the process
 	sys_ret = system("killall -9 leopard_cam"); 
+
+
+
 	if (sys_ret < 0)
 	{
 		printf("fail to exit the leopard camera tool\r\n");
 		return -1;
 	} 
+
+
 	return 0;
 }
