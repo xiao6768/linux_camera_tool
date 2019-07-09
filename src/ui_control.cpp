@@ -41,7 +41,8 @@ GtkWidget *label_reg_addr, *entry_reg_addr;
 GtkWidget *label_reg_val, *entry_reg_val;
 GtkWidget *button_read, *button_write;
 GtkWidget *check_button_just_sensor;
-GtkWidget *label_capture, *button_capture_bmp, *button_capture_raw, *label_auto_capture;
+GtkWidget *label_capture, *button_capture_bmp, *button_capture_raw;
+GtkWidget *label_auto_capture, *entry_capture_fps;
 GtkWidget *label_gamma, *entry_gamma, *button_apply_gamma;
 GtkWidget *label_trig, *check_button_trig_en, *button_trig;
 GtkWidget *label_blc, *entry_blc, *button_apply_blc;
@@ -499,7 +500,7 @@ void list_all_def_elements ()
         {.widget = label_reg_val,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Reg Value:"},
         {.widget = label_trig,        .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Trigger Sensor:"},
         {.widget = label_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Capture:"}, 
-        {.widget = label_auto_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Auto Capture:"},    
+        {.widget = label_auto_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Auto Capture(FPS):"},    
         {.widget = label_gamma,       .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Gamma Correction:"},
         {.widget = label_blc,         .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Black Level Correction:"},
 
@@ -526,6 +527,8 @@ void list_all_def_elements ()
         {.widget = entry_reg_val,     .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "0x"},    
         {.widget = entry_gamma,       .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "1"},
         {.widget = entry_blc,         .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "0"},
+
+        {.widget = entry_capture_fps,     .wid_type = GTK_WIDGET_TYPE_ENTRY, .parent = NULL, .label_str = "5"}, 
 
         {.widget = radio_raw10, .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_datatype, .label_str = "RAW10"},
         {.widget = radio_raw12, .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_datatype, .label_str = "RAW12"},
@@ -612,7 +615,8 @@ void list_all_grid_elements()
         {.widget = button_capture_bmp,   .col = ++col,      .row = row,    .width = 1},
         {.widget = button_capture_raw,   .col = ++col,      row++,  .width = 1},
 
-        {.widget = label_auto_capture,   .col = col = 0,    .row = row++,    .width = 1},
+        {.widget = label_auto_capture,   .col = col = 0,    .row = row,    .width = 1},
+        {.widget = entry_capture_fps,        .col = ++col,      .row = row++,    .width = 1},
 
         {.widget = label_gamma,          .col = col = 0,    .row = row,    .width = 1},
         {.widget = entry_gamma,          .col = ++col,      .row = row,    .width = 1},
@@ -752,7 +756,7 @@ void init_all_widgets()
     entry_reg_val   = gtk_entry_new();
     entry_gamma     = gtk_entry_new();
     entry_blc       = gtk_entry_new();
-
+    entry_capture_fps   = gtk_entry_new();
 
     hscale_exposure = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
                                                0.0, 2505.0, 1.0);
