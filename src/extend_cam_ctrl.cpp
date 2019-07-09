@@ -61,6 +61,8 @@ static int image_count;				/** image count number printed to captures name */
 double t = 0;						/** time measured in opencv for caculating fps */
 double fps;							/** frame rate */
 char string_frame_rate[10];			/** string to save the frame rate */
+static int *auto_capture_flag;		/** flag for auto capture BMP */
+static int *auto_capture_fps;		/** number of frames per second for auto capture BMP */
 
 struct v4l2_buffer queuebuffer; /** queuebuffer query for enqueue, dequeue buffers*/
 
@@ -158,6 +160,15 @@ void video_capture_save_bmp()
 inline void set_save_bmp_flag(int flag)
 {
 	*save_bmp = flag;
+}
+
+
+void auto_capture_enable(int gui_enable, int gui_fps)
+{
+	printf("auto capture enable => {%d}\n", gui_enable);
+	printf("auto capture FPS => {%d}\n", gui_fps);
+	*auto_capture_flag = gui_enable;
+	*auto_capture_fps = gui_fps;
 }
 
 /**
@@ -619,6 +630,12 @@ void mmap_variables()
 		PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	loop = (int *)mmap(NULL, sizeof *loop, PROT_READ | PROT_WRITE,
 					   MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+	auto_capture_flag = (int *)mmap(NULL, sizeof *auto_capture_flag, PROT_READ | PROT_WRITE,
+					MAP_SHARED | MAP_ANONYMOUS, -1, 0);	
+	
+	auto_capture_fps = (int *)mmap(NULL, sizeof *auto_capture_fps, PROT_READ | PROT_WRITE,
+					MAP_SHARED | MAP_ANONYMOUS, -1, 0);							   
 }
 
 /** unmap all the variables after stream ends */
@@ -633,6 +650,8 @@ void unmap_variables()
 	munmap(gamma_val, sizeof *gamma_val);
 	munmap(black_level_correction, sizeof *black_level_correction);
 	munmap(loop, sizeof *loop);
+	munmap(auto_capture_flag, sizeof *auto_capture_flag);
+	munmap(auto_capture_fps, sizeof *auto_capture_fps);
 }
 
 /**
@@ -1012,9 +1031,9 @@ void decode_a_frame(struct device *dev, const void *p, int shift)
 		set_save_bmp_flag(0);
 	}
 	/** enable_auto_capture_bmp  */	
-	if(enable_auto_capture_bmp)
+	if(*auto_capture_flag)
 	{
-		double capture_delay = (double)1000 / (double)auto_capture_bmp_rate_per_second;
+		double capture_delay = (double)1000 / (double)*auto_capture_fps;
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
 		if((elapsed.count() * 1000) > capture_delay)
