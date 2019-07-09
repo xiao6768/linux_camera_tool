@@ -7,10 +7,16 @@
 #include "../includes/cam_property.h"
 #include "../includes/v4l2_devices.h"
 #include "../includes/json_parser.h"
+#include <chrono> //high resolution clock
+#include <iostream>
 
 int v4l2_dev; /** global variable, file descriptor for camera device */
 int fw_rev;   /** global variable, firmware revision for the camera */
+int gain_max; /** global variable, update gain range in GUI, read from v4l2 */
+int exposure_max; /** global variable, update exposure range in GUI, read from v4l2 */
+
 struct v4l2_fract time_per_frame = {1, 15};
+
 
 static struct option opts[] = {
 
@@ -18,6 +24,29 @@ static struct option opts[] = {
 	{"size", 1, 0, 's'},
 	{"time-per-frame", 1, 0, 't'},
 	{0, 0, 0, 0}};
+/**
+ * return the output string for a linux shell command 
+ */
+std::string get_stdout_from_cmd(std::string cmd)
+{
+
+	std::string data;
+	FILE *stream;
+	const int max_buffer = 256;
+	char buffer[max_buffer];
+	cmd.append(" 2>&1");
+
+	stream = popen(cmd.c_str(), "r");
+	if (stream)
+	{
+		while (!feof(stream))
+			if (fgets(buffer, max_buffer, stream) != NULL)
+				data.append(buffer);
+		pclose(stream);
+	}
+	return data;
+}
+
 
 /** main function */
 int main(int argc, char **argv)
@@ -31,7 +60,10 @@ int main(int argc, char **argv)
 	dev.nbufs = V4L_BUFFERS_DEFAULT;
 	int c;
 	int sys_ret;
-	
+
+	// record start time
+	auto start = std::chrono::high_resolution_clock::now();
+
 	char *ret_dev_name = enum_v4l2_device(dev_name);
 	v4l2_dev = open_v4l2_device(ret_dev_name, &dev);
 
@@ -40,6 +72,21 @@ int main(int argc, char **argv)
 		printf("open camera %s failed,err code:%d\n\r", dev_name, v4l2_dev);
 		return -1;
 	}
+	/**
+	 * this part is to get the gain and exposure maximum value defined in firmware
+	 * and update the range in GUI
+	 * if MAX_EXPOSURE_TIME is undefined in firmware, will put a upper limit for 
+	 * exposure time range so the range won't be as large as 65535 which confuses people
+	 */
+	gain_max = std::stoi(get_stdout_from_cmd( \
+		"v4l2-ctl --all | grep gain | awk '{print $6}'| sed 's/max=//g'"));
+	exposure_max = std::stoi(get_stdout_from_cmd( \
+		"v4l2-ctl --all | grep exposure_absolute | awk '{print $6}'| sed 's/max=//g'"));
+	int height = std::stoi(get_stdout_from_cmd( \
+		"v4l2-ctl --all | grep Bounds | awk '{print $10}'"));
+	// if UNSET_MAX_EXPOSURE_LINE, firmware didn't define MAX_EXPOSURE_TIME...
+	if (exposure_max == UNDEFINED_MAX_EXPOSURE_LINE) 
+		exposure_max = height * 3; // place holder = 3 for now
 
 	printf("********************List Available Resolutions***************\n");
 	/** list all the resolutions */
@@ -49,7 +96,7 @@ int main(int argc, char **argv)
 	{
 		printf("failed to list camera %s resolution\n\r", dev_name);
 		return -1;
-	}	
+	}
 	/** 
 	 * run a v4l2-ctl --list-formats-ext 
 	 * to see the resolution and available frame rate 
@@ -109,12 +156,11 @@ int main(int argc, char **argv)
 		set_frame_rate(v4l2_dev, time_per_frame.denominator);
 	}
 
-
 	printf("********************Device Infomation************************\n");
 	/** try to get all the static camera info before fork */
 	fw_rev = read_cam_uuid_hwfw_rev(v4l2_dev);
 	check_dev_cap(&dev);
-	video_get_format(&dev); /** list the current resolution etc */
+	video_get_format(&dev);   /** list the current resolution etc */
 	get_frame_rate(v4l2_dev); /** list the current frame rate */
 
 	printf("********************Allocate Buffer for Capturing************\n");
@@ -138,7 +184,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "ERROR:fork() failed\n");
 	}
 
-
 /** individual camera tests, detail info is in uvc_extension_unit_ctrl.h */
 #ifdef AP0202_WRITE_REG_ON_THE_FLY
 	unsigned int i;
@@ -159,7 +204,7 @@ int main(int argc, char **argv)
 
 #ifdef AP0202_WRITE_REG_IN_FLASH
 	load_register_setting_from_configuration(v4l2_dev,
-		SIZE(ChangConfigFromFlash), ChangConfigFromFlash);
+											 SIZE(ChangConfigFromFlash), ChangConfigFromFlash);
 
 	sleep(1);
 	//generic_I2C_read(v4l2_dev, 0x02, 2, AP020X_I2C_ADDR, 0x0058);
@@ -202,12 +247,18 @@ int main(int argc, char **argv)
 	video_free_buffers(&dev);
 	close(v4l2_dev);
 
+	auto finish = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed = finish - start;
+	std::cout << "pid:" << getpid() << "\tElapsed time： " << elapsed.count() << "s\r\n";
+
 	//FIXME:why when close the window, it won't kill the process
-	sys_ret = system("killall -9 leopard_cam"); 
+	sys_ret = system("killall -9 leopard_cam");
+
 	if (sys_ret < 0)
 	{
 		printf("fail to exit the leopard camera tool\r\n");
 		return -1;
-	} 
+	}
+
 	return 0;
 }

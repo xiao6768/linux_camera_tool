@@ -58,7 +58,8 @@ int value_width_flag;
 static GtkWidget *window = NULL; /** the main window */
 extern int v4l2_dev;
 extern int fw_rev;
-
+extern int gain_max;
+extern int exposure_max;
 /*****************************************************************************
 **                      	Internal Callbacks
 *****************************************************************************/
@@ -294,7 +295,7 @@ void register_read(GtkWidget *widget)
             gtk_entry_get_text(GTK_ENTRY(entry_reg_addr)));
 
         int regVal = sensor_reg_read(v4l2_dev, regAddr);
-        char buf[6];
+        char buf[10];
         snprintf(buf, sizeof(buf), "0x%x", regVal);
         gtk_entry_set_text(GTK_ENTRY(entry_reg_val), buf);
     }
@@ -750,9 +751,9 @@ void init_all_widgets()
 
 
     hscale_exposure = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-                                               0.0, 2505.0, 1.0);
+                                               0.0, (double)exposure_max, 1.0);
     hscale_gain     = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-                                           0.0, 63.0, 1.0);
+                                           0.0, (double)gain_max, 1.0);
 
     hbox_val_width  = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     hbox_addr_width = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
