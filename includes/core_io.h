@@ -11,14 +11,18 @@
 *****************************************************************************/
 #pragma once
 #include<ctype.h>
-
+/****************************************************************************
+**                      	Global data 
+*****************************************************************************/
 typedef enum 
 {
   CONFIG_FILE_TXT = 0,
   CONFIG_FILE_JSON,
   CONFIG_FILE_BIN, 
 }config_file_type;
-
+/****************************************************************************
+**							 Function declaration
+*****************************************************************************/
 void top_n_tail(char *str);
 void trim_trailing_whitespaces(char *src);
 char *get_file_basename(char *filename);

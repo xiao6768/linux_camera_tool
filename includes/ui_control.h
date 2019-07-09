@@ -16,7 +16,9 @@
 #include <gdk/gdkkeysyms.h>
 
 
-
+/****************************************************************************
+**                      	Global data 
+*****************************************************************************/
 // Hold init data for GTK signals
 typedef struct
 {
@@ -62,11 +64,16 @@ typedef struct
   gpointer data;
 } element_callback;
 
-int gui_attach_gtk3_menu(GtkWidget *parent);
+typedef enum 
+{
+  _8BIT_FLG = 1,
+  _16BIT_FLG = 2
+}reg_addr_val_width_flag;
+
 /*****************************************************************************
 **                      	Internal Callbacks
 *****************************************************************************/
-
+int gui_attach_gtk3_menu(GtkWidget *parent);
 
 void open_config_dialog(GtkWidget *widget, gpointer window);
 void config_profile_clicked (GtkWidget *item);
@@ -80,12 +87,14 @@ void hscale_gain_up(GtkRange *widget);
 
 void enable_ae(GtkToggleButton *toggle_button);
 void enable_awb(GtkToggleButton *toggle_button);
-void enable_abc(GtkWidget *widget, GtkToggleButton *toggle_button);
+void enable_abc(GtkToggleButton *toggle_button);
 
 void toggled_addr_length(GtkWidget *widget, gpointer data);
 void toggled_val_length(GtkWidget *widget, gpointer data);
 int addr_width_for_rw(int address_width_flag);
 int val_width_for_rw(int value_width_flag);
+
+int hex_or_dec_interpreter_c_string(char *in_string);
 
 void register_write(GtkWidget *widget);
 void register_read(GtkWidget *widget);
