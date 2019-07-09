@@ -606,9 +606,10 @@ void list_all_grid_elements()
         {.widget = label_bayer,           .col = col = 0,    .row = row,    .width = 1},
         {.widget = hbox_bayer,            .col = ++col,      row++,  .width = 2},
  
-        {.widget = check_button_auto_exposure,.col = col = 0,    .row = row,    .width = 1},
-        {.widget = check_button_awb,          .col = ++col,      .row = row,    .width = 1},
+        {.widget = check_button_auto_exposure,.col = col = 0,    .row = row,    .width = 1},        
         {.widget = check_button_auto_gain,    .col = ++col,      row++,  .width = 1},
+
+        {.widget = check_button_awb,     .col = col= 0,      .row = row++,    .width = 1},
  
         {.widget = label_exposure,       .col = col = 0,    .row = row,    .width = 1},
         {.widget = hscale_exposure,      .col = ++col,      row++,  .width = 3},
