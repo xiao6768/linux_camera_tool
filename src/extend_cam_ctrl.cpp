@@ -40,7 +40,7 @@
 
 #include "../includes/shortcuts.h"
 #include "../includes/extend_cam_ctrl.h"
-
+#include <chrono>
 /*****************************************************************************
 **                      	Global data 
 *****************************************************************************/
@@ -66,6 +66,11 @@ struct v4l2_buffer queuebuffer; /** queuebuffer query for enqueue, dequeue buffe
 
 extern char *get_product(); /** put product name into captured image name */
 extern void json_parser(int fd);
+
+extern int 	enable_auto_capture_bmp;
+extern int	auto_capture_bmp_rate_per_second;
+static std::chrono::_V2::system_clock::time_point start = std::chrono::high_resolution_clock::now();
+
 /******************************************************************************
 **                           Function definition
 *****************************************************************************/
@@ -1005,6 +1010,19 @@ void decode_a_frame(struct device *dev, const void *p, int shift)
 		save_frame_image_bmp(share_img);
 		image_count++;
 		set_save_bmp_flag(0);
+	}
+	/** enable_auto_capture_bmp  */	
+	if(enable_auto_capture_bmp)
+	{
+		double capture_delay = (double)1000 / (double)auto_capture_bmp_rate_per_second;
+		auto finish = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = finish - start;
+		if((elapsed.count() * 1000) > capture_delay)
+		{
+			save_frame_image_bmp(share_img);
+			image_count++;
+			start = finish;
+		}
 	}
 
 	/** if image larger than 720p by any dimension, resize the window */

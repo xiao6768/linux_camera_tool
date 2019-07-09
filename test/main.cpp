@@ -40,24 +40,24 @@ int main(int argc, char **argv)
 	// record start time
 	auto start = std::chrono::high_resolution_clock::now();
 
-	// char *ret_dev_name = enum_v4l2_device(dev_name);
-	// v4l2_dev = open_v4l2_device(ret_dev_name, &dev);
+	char *ret_dev_name = enum_v4l2_device(dev_name);
+	v4l2_dev = open_v4l2_device(ret_dev_name, &dev);
 
-	// if (v4l2_dev < 0)
-	// {
-	// 	printf("open camera %s failed,err code:%d\n\r", dev_name, v4l2_dev);
-	// 	return -1;
-	// }
+	if (v4l2_dev < 0)
+	{
+		printf("open camera %s failed,err code:%d\n\r", dev_name, v4l2_dev);
+		return -1;
+	}
 
-	// printf("********************List Available Resolutions***************\n");
-	// /** list all the resolutions */
-	// sys_ret = system("v4l2-ctl --list-formats-ext | grep Size | awk '{print $1 $3}'|  	\
-	// 	sed 's/Size/Resolution/g'");
-	// if (sys_ret < 0)
-	// {
-	// 	printf("failed to list camera %s resolution\n\r", dev_name);
-	// 	return -1;
-	// }	
+	printf("********************List Available Resolutions***************\n");
+	/** list all the resolutions */
+	sys_ret = system("v4l2-ctl --list-formats-ext | grep Size | awk '{print $1 $3}'|  	\
+		sed 's/Size/Resolution/g'");
+	if (sys_ret < 0)
+	{
+		printf("failed to list camera %s resolution\n\r", dev_name);
+		return -1;
+	}	
 	/** 
 	 * run a v4l2-ctl --list-formats-ext 
 	 * to see the resolution and available frame rate 
