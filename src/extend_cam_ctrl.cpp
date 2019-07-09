@@ -359,7 +359,7 @@ static cv::Mat apply_white_balance(cv::Mat opencvImage)
 	if (opencvImage.type() == CV_8UC1)
 		return opencvImage;
 
-	double discard_ratio = 0.05;
+	double discard_ratio = 0.02;
 	int hists[3][256];
 	CLEAR(hists);
 
@@ -411,6 +411,125 @@ static cv::Mat apply_white_balance(cv::Mat opencvImage)
 		}
 	}
 	return opencvImage;
+}
+
+// copy from 
+// https://github.com/eugenelet/Image-White-Balance/blob/master/main.cpp
+static cv::Mat whiteBalance(cv::Mat img){
+	cv::Mat WB_img = img.clone();
+	double* histogram;
+	double* equalHistorgram;
+	double normalizeFactor = img.rows * img.cols;
+	for(int i = 0; i < 3; i++){
+		histogram = new double[256];
+		// equalHistorgram = new double[256];
+
+		for(int index = 0; index < 256; index++)
+			histogram[index] = 0;
+
+		for(int row = 0; row < img.rows; row++)
+			for(int col = 0; col < img.cols; col++)
+				histogram[img.at<cv::Vec3b>(row, col).val[i]]++;
+
+		for(int index = 1; index < 256; index++){
+			histogram[index] = histogram[index] + histogram[index-1];
+		}
+
+		/* Obtain the max and min of streching boundary based on the histogram*/
+		double discard_ratio = 0.05;
+		int min = 0;
+		int max = 255;
+		while(histogram[min] < discard_ratio*normalizeFactor)
+			min += 1;
+		while(histogram[max] > (1.0-discard_ratio)*normalizeFactor)
+			max -= 1;
+
+		if(max < 254)
+			max += 1;
+
+
+		for(int row = 0; row < img.rows; row++)
+			for(int col = 0; col < img.cols; col++){
+				uchar val = img.at<cv::Vec3b>(row, col).val[i];
+				if(val < min)
+					val = min;
+				if(val > max)
+					val = max;
+				/* 1 to 1 Mapping of histogram */
+				// WB_img.at<Vec3b>(row, col).val[i] = histogram[img.at<Vec3b>(row, col).val[i]]/normalizeFactor*255;
+				
+				/* Streching based on the Histogram */
+				WB_img.at<cv::Vec3b>(row, col).val[i] = (uchar)(val - min)*255 / (max - min);
+
+			}
+
+	}
+	return WB_img;
+}
+int p_B = 0;
+int p_G = 0;
+int p_R = 0;
+// copy from
+// https://github.com/MingJiang1988/Image-Process-white-balance/blob/master/AutocropDlg.cpp 
+static cv::Mat colorBalance_v3(cv::Mat image)
+{
+	cv::Mat new_image = image.clone();
+	float rSmpl = 0, gSmpl = 0, bSmpl = 0, greySmpl = 0;
+	for (int x = 0; x<6; x++)
+	{
+		for (int y = 0; y<6; y++)
+		{
+			if (rSmpl == 0)
+			{
+				bSmpl = image.at<cv::Vec3b>(cv::Point(x, y))[0];
+				gSmpl = image.at<cv::Vec3b>(cv::Point(x, y))[1];
+				rSmpl = image.at<cv::Vec3b>(cv::Point(x, y))[2];
+			}
+			else
+			{
+				bSmpl = (bSmpl + image.at<cv::Vec3b>(cv::Point(x, y))[0]) / 2;
+				gSmpl = (gSmpl + image.at<cv::Vec3b>(cv::Point(x, y))[1]) / 2;
+				rSmpl = (rSmpl + image.at<cv::Vec3b>(cv::Point(x, y))[2]) / 2;
+			}
+		}
+	}
+	//rSmpl = images[0](disp.mouse_x,disp.mouse_y,0,0);
+	//gSmpl = images[0](disp.mouse_x,disp.mouse_y,0,1);
+	//bSmpl = images[0](disp.mouse_x,disp.mouse_y,0,2);
+	greySmpl = (rSmpl + gSmpl + bSmpl) / 3;
+	//cout << "SAMPLE PIXEL:" << rSmpl << "," << gSmpl << "," << bSmpl << "," << (int)greySmpl << endl;
+	float rCoeff = 0, gCoeff = 0, bCoeff = 0, skinGrey = 0;
+	skinGrey = (p_R + p_G + p_B) / 3;
+	rCoeff = (p_R / skinGrey) / (rSmpl / greySmpl);
+	gCoeff = (p_G / skinGrey) / (gSmpl / greySmpl);
+	bCoeff = (p_B / skinGrey) / (bSmpl / greySmpl);
+	//cout << "COEFFICIENTS:" << rCoeff << "," << gCoeff << "," << bCoeff << endl;
+	for (unsigned int x = 0; x<image.size().width; x++)
+	{
+		for (unsigned int y = 0; y<image.size().height; y++)
+		{
+			float bPix = image.at<cv::Vec3b>(cv::Point(x, y))[0];
+			float gPix = image.at<cv::Vec3b>(cv::Point(x, y))[1];
+			float rPix = image.at<cv::Vec3b>(cv::Point(x, y))[2];
+			new_image.at<cv::Vec3b>(cv::Point(x, y))[2] = rPix*rCoeff;
+			if (rPix*rCoeff > 255)
+			{
+				new_image.at<cv::Vec3b>(cv::Point(x, y))[2] = 255;
+			}
+			new_image.at<cv::Vec3b>(cv::Point(x, y))[1] = gPix*gCoeff;
+			if (gPix*gCoeff > 255)
+			{
+				new_image.at<cv::Vec3b>(cv::Point(x, y))[1] = 255;
+			}
+			new_image.at<cv::Vec3b>(cv::Point(x, y))[0] = bPix*bCoeff;
+			if (bPix*bCoeff > 255)
+			{
+				new_image.at<cv::Vec3b>(cv::Point(x, y))[0] = 255;
+			}
+		}
+	}
+	
+	return new_image;
 }
 
 /**
