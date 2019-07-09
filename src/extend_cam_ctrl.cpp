@@ -63,6 +63,7 @@ double fps;							/** frame rate */
 char string_frame_rate[10];			/** string to save the frame rate */
 static int *auto_capture_flag;		/** flag for auto capture BMP */
 static int *auto_capture_fps;		/** number of frames per second for auto capture BMP */
+static int *awb_algorithm_type;		/** algorithm id for awb */
 
 struct v4l2_buffer queuebuffer; /** queuebuffer query for enqueue, dequeue buffers*/
 
@@ -288,6 +289,20 @@ void change_bayerpattern(void *bayer)
 		*bayer_flag = CV_BayerGR2BGR_FLG;
 	if (strcmp((char *)bayer, "5") == 0)
 		*bayer_flag = CV_MONO_FLG;
+}
+
+void change_awb_algo_type(void *gui_algo_id)
+{
+	if (strcmp((char *)gui_algo_id, "1") == 0)
+		*awb_algorithm_type = awb_standard;
+	if (strcmp((char *)gui_algo_id, "2") == 0)
+		*awb_algorithm_type = awb_v1;
+	if (strcmp((char *)gui_algo_id, "3") == 0)
+		*awb_algorithm_type = awb_v2;
+	if (strcmp((char *)gui_algo_id, "4") == 0)
+		*awb_algorithm_type = awb_v3;
+	if (strcmp((char *)gui_algo_id, "5") == 0)
+		*awb_algorithm_type = awb_v4;	
 }
 
 /**
@@ -754,7 +769,10 @@ void mmap_variables()
 					MAP_SHARED | MAP_ANONYMOUS, -1, 0);	
 	
 	auto_capture_fps = (int *)mmap(NULL, sizeof *auto_capture_fps, PROT_READ | PROT_WRITE,
-					MAP_SHARED | MAP_ANONYMOUS, -1, 0);							   
+					MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	awb_algorithm_type = (int *)mmap(NULL, sizeof *awb_algorithm_type, PROT_READ | PROT_WRITE,
+							 MAP_SHARED | MAP_ANONYMOUS, -1, 0);				
+
 }
 
 /** unmap all the variables after stream ends */
@@ -1049,7 +1067,30 @@ static cv::Mat group_3a_ctrl_flags_for_raw_camera(cv::Mat opencvImage)
 
 	/** check awb flag, awb functionality, only available for bayer camera */
 	if (*(awb_flag) == TRUE)
-		opencvImage = apply_white_balance(opencvImage);
+	{
+		switch (*awb_algorithm_type)
+		{
+		case /* constant-expression */ awb_v1:
+			opencvImage = whiteBalance(opencvImage);
+			/* code */
+			break;
+		case /* constant-expression */ awb_v2:
+			opencvImage = colorBalance_v3(opencvImage);
+			/* code */
+			break;
+		case /* constant-expression */ awb_v3:
+			/* code */
+			//break;
+		case /* constant-expression */ awb_v4:
+			/* code */
+			//break;
+		case /* constant-expression */ awb_standard:
+		default:
+			opencvImage = apply_white_balance(opencvImage);
+			break;
+		}
+	}
+		
 
 	/** check abc flag, abc functionality, only available for bayer camera */
 	if (*(abc_flag) == TRUE)

@@ -29,7 +29,10 @@ GtkWidget *label_datatype, *hbox_datatype;
 GtkWidget *radio_raw10, *radio_raw12, *radio_yuyv, *radio_raw8;
 
 GtkWidget *label_bayer, *hbox_bayer;
+GtkWidget *hbox_awb_type;
 GtkWidget *radio_bg, *radio_gb, *radio_rg, *radio_gr, *radio_mono;
+
+GtkWidget *radio_awb_type_std, *radio_awb_type_v1, *radio_awb_type_v2, *radio_awb_type_v3, *radio_awb_type_v4;
 
 GtkWidget *check_button_auto_exposure, *check_button_awb, *check_button_auto_gain;
 GtkWidget *label_exposure, *label_gain;
@@ -136,6 +139,14 @@ void radio_bayerpattern(GtkWidget *widget, gpointer data)
     (void)widget;
     change_bayerpattern(data);
 }
+
+/** callback for bayer pattern choice updates*/
+void radio_awbtype(GtkWidget *widget, gpointer data)
+{
+    (void)widget;
+    change_awb_algo_type(data);
+}
+
 
 /** callback for updating exposure time line */
 void hscale_exposure_up(GtkRange *widget)
@@ -564,6 +575,12 @@ void list_all_def_elements ()
         {.widget = radio_gr,   .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_bayer, .label_str = "GRBG"},
         {.widget = radio_mono, .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_bayer, .label_str = "MONO"},
 
+        {.widget = radio_awb_type_std,  .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_awb_type, .label_str = "Standard"},
+        {.widget = radio_awb_type_v1,   .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_awb_type, .label_str = "V1"},
+        {.widget = radio_awb_type_v2,   .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_awb_type, .label_str = "V2"},
+        {.widget = radio_awb_type_v3,   .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_awb_type, .label_str = "V3"},
+        {.widget = radio_awb_type_v4,   .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_awb_type, .label_str = "V4"},
+
         {.widget = radio_8bit_addr,   .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_addr_width, .label_str = "8-bit"},
         {.widget = radio_16bit_addr,  .wid_type = GTK_WIDGET_TYPE_RADIO_BUTTON, .parent = hbox_addr_width, .label_str = "16-bit"},
 
@@ -609,7 +626,8 @@ void list_all_grid_elements()
         {.widget = check_button_auto_exposure,.col = col = 0,    .row = row,    .width = 1},        
         {.widget = check_button_auto_gain,    .col = ++col,      row++,  .width = 1},
 
-        {.widget = check_button_awb,     .col = col= 0,      .row = row++,    .width = 1},
+        {.widget = check_button_awb,     .col = col= 0,      .row = row,    .width = 1},
+        {.widget = hbox_awb_type,        .col = ++col,      row++,  .width = 2},
  
         {.widget = label_exposure,       .col = col = 0,    .row = row,    .width = 1},
         {.widget = hscale_exposure,      .col = ++col,      row++,  .width = 3},
@@ -686,6 +704,12 @@ void list_all_element_callbacks()
         {.widget = radio_rg,          .signal = "toggled", .handler = G_CALLBACK(radio_bayerpattern), .data = (gpointer)"3"},
         {.widget = radio_gr,          .signal = "toggled", .handler = G_CALLBACK(radio_bayerpattern), .data = (gpointer)"4"},
         {.widget = radio_mono,        .signal = "toggled", .handler = G_CALLBACK(radio_bayerpattern), .data = (gpointer)"5"},
+
+        {.widget = radio_awb_type_std,.signal = "toggled", .handler = G_CALLBACK(radio_awbtype), .data = (gpointer)"1"},
+        {.widget = radio_awb_type_v1, .signal = "toggled", .handler = G_CALLBACK(radio_awbtype), .data = (gpointer)"2"},
+        {.widget = radio_awb_type_v2, .signal = "toggled", .handler = G_CALLBACK(radio_awbtype), .data = (gpointer)"3"},
+        {.widget = radio_awb_type_v3, .signal = "toggled", .handler = G_CALLBACK(radio_awbtype), .data = (gpointer)"4"},
+        {.widget = radio_awb_type_v4, .signal = "toggled", .handler = G_CALLBACK(radio_awbtype), .data = (gpointer)"5"},
  
         {.widget = check_button_auto_exposure, .signal = "toggled", .handler = G_CALLBACK(enable_ae),  .data = NULL},
         {.widget = check_button_awb,           .signal = "toggled", .handler = G_CALLBACK(enable_awb), .data = NULL},
@@ -795,6 +819,7 @@ void init_all_widgets()
     hbox_addr_width = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     hbox_bayer      = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
     hbox_datatype   = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+    hbox_awb_type   = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 
     radio_raw10 = gtk_radio_button_new(NULL);
     radio_raw12 = gtk_radio_button_new(gtk_radio_button_get_group
@@ -813,6 +838,16 @@ void init_all_widgets()
         (GTK_RADIO_BUTTON(radio_bg)));
     radio_mono  = gtk_radio_button_new(gtk_radio_button_get_group
         (GTK_RADIO_BUTTON(radio_bg)));
+
+    radio_awb_type_std    = gtk_radio_button_new(NULL);
+    radio_awb_type_v1    = gtk_radio_button_new(gtk_radio_button_get_group   
+        (GTK_RADIO_BUTTON(radio_awb_type_std)));
+    radio_awb_type_v2    = gtk_radio_button_new(gtk_radio_button_get_group
+        (GTK_RADIO_BUTTON(radio_awb_type_std)));
+    radio_awb_type_v3    = gtk_radio_button_new(gtk_radio_button_get_group
+        (GTK_RADIO_BUTTON(radio_awb_type_std)));
+    radio_awb_type_v4  = gtk_radio_button_new(gtk_radio_button_get_group
+        (GTK_RADIO_BUTTON(radio_awb_type_std)));
 
     radio_8bit_addr    = gtk_radio_button_new(NULL);
     radio_16bit_addr   = gtk_radio_button_new(gtk_radio_button_get_group

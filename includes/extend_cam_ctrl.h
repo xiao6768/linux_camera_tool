@@ -61,6 +61,16 @@ typedef enum
 
 typedef enum
 {
+   awb_standard = 1,
+   awb_v1,
+   awb_v2,
+   awb_v3,
+   awb_v4,
+   awb_max
+} awb_algorithm_id;
+
+typedef enum
+{
    CROPPED_WIDTH = 1280,
    CROPPED_HEIGHT = 720
 }cropped_resolution;
@@ -81,6 +91,7 @@ void change_datatype(void* datatype);
 
 inline int add_bayer_forcv(int *bayer_flag);
 void change_bayerpattern(void *bayer); 
+void change_awb_algo_type(void *gui_algo_id); 
 
 void add_gamma_val(float gamma_val_from_gui);
 void add_black_level_correction(int blc_val_from_gui);

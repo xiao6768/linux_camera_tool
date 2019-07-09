@@ -81,6 +81,7 @@ void fw_update_clicked (GtkWidget *item);
 
 void radio_datatype(GtkWidget *widget, gpointer data);
 void radio_bayerpattern(GtkWidget *widget, gpointer data);
+void radio_awbtype(GtkWidget *widget, gpointer data);
 
 void hscale_exposure_up(GtkRange *widget);
 void hscale_gain_up(GtkRange *widget);
