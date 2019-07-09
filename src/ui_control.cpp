@@ -41,7 +41,7 @@ GtkWidget *label_reg_addr, *entry_reg_addr;
 GtkWidget *label_reg_val, *entry_reg_val;
 GtkWidget *button_read, *button_write;
 GtkWidget *check_button_just_sensor;
-GtkWidget *label_capture, *button_capture_bmp, *button_capture_raw;
+GtkWidget *label_capture, *button_capture_bmp, *button_capture_raw, *label_auto_capture;
 GtkWidget *label_gamma, *entry_gamma, *button_apply_gamma;
 GtkWidget *label_trig, *check_button_trig_en, *button_trig;
 GtkWidget *label_blc, *entry_blc, *button_apply_blc;
@@ -498,7 +498,8 @@ void list_all_def_elements ()
         {.widget = label_reg_addr,    .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Reg Addr:"},     
         {.widget = label_reg_val,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Reg Value:"},
         {.widget = label_trig,        .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Trigger Sensor:"},
-        {.widget = label_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Capture:"},     
+        {.widget = label_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Capture:"}, 
+        {.widget = label_auto_capture,     .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Auto Capture:"},    
         {.widget = label_gamma,       .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Gamma Correction:"},
         {.widget = label_blc,         .wid_type = GTK_WIDGET_TYPE_LABEL, .parent = NULL, .label_str = "Black Level Correction:"},
 
@@ -610,7 +611,9 @@ void list_all_grid_elements()
         {.widget = label_capture,        .col = col = 0,    .row = row,    .width = 1},
         {.widget = button_capture_bmp,   .col = ++col,      .row = row,    .width = 1},
         {.widget = button_capture_raw,   .col = ++col,      row++,  .width = 1},
- 
+
+        {.widget = label_auto_capture,   .col = col = 0,    .row = row++,    .width = 1},
+
         {.widget = label_gamma,          .col = col = 0,    .row = row,    .width = 1},
         {.widget = entry_gamma,          .col = ++col,      .row = row,    .width = 1},
         {.widget = button_apply_gamma,   .col = ++col,      row++,  .width = 1},
@@ -724,6 +727,7 @@ void init_all_widgets()
     label_reg_addr = gtk_label_new(NULL);
     label_reg_val  = gtk_label_new(NULL);
     label_capture  = gtk_label_new(NULL);  
+    label_auto_capture  = gtk_label_new(NULL);
     label_gamma    = gtk_label_new(NULL);
     label_trig     = gtk_label_new(NULL);
     label_blc      = gtk_label_new(NULL);
